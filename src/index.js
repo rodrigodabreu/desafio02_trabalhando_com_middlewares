@@ -24,15 +24,50 @@ function checksExistsUserAccount(request, response, next) {
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+
+  if (user.pro == true || user.todos.length < 10) {
+    return next();
+  } else {
+    return response.status(403).json({ error: "User already used all todos" });
+  }
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+  const { username } = request.headers;
+
+  //validar o usuário
+  const user = users.find((user) => user.username === username);
+  if (!user) {
+    return response.status(404).json({ error: "User not found" });
+  }
+  //validar que o id seja um uuid
+  if (!validate(id)) {
+    return response.status(400).json({ error: "This id is not a valid uuid" });
+  }
+  //validar que o id pertence a um todo
+  const todo = user.todos.find((todo) => todo.id === id);
+
+  if (!todo) {
+    return response.status(404).json({ error: "Todo Not Found" });
+  }
+
+  request.user = user;
+  request.todo = todo;
+  return next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+  const usuarioLocalizado = users.find((user) => user.id === id);
+
+  if (!usuarioLocalizado) {
+    return response.status(404).json({ error: "User not found" });
+  }
+
+  request.user = usuarioLocalizado;
+  return next();
 }
 
 app.post("/users", (request, response) => {
@@ -63,6 +98,10 @@ app.get("/users/:id", findUserById, (request, response) => {
   const { user } = request;
 
   return response.json(user);
+});
+
+app.get("/users", (request, response) => {
+  return response.json(users);
 });
 
 app.patch("/users/:id/pro", findUserById, (request, response) => {
